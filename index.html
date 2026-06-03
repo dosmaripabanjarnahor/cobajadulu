@@ -39,40 +39,60 @@
       overflow-y: hidden;
       scroll-behavior: smooth;
       height: 100dvh;
-      gap: var(--slide-gap);
-      padding: var(--slide-padding);
+      gap: 0;
+      padding: 0;
       -webkit-overflow-scrolling: touch;
       scroll-snap-type: x mandatory;
       scrollbar-width: none;
+      align-items: center;
     }
     .slides-container::-webkit-scrollbar { display: none; }
 
-    /* ── SLIDE ── */
+    /* ── SLIDE (default: portrait/mobile — full screen) ── */
     .slide {
-      height: calc(100dvh - var(--slide-padding) * 2);
-      width: auto;
-      aspect-ratio: 16 / 9;
+      width: 100vw;
+      height: 100dvh;
       flex-shrink: 0;
-      border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      border-radius: 0;
+      box-shadow: none;
       overflow: hidden;
-      background: #fff;
+      background: #000;
       position: relative;
-      scroll-snap-align: center;
-      transition: transform 0.2s ease;
+      scroll-snap-align: start;
     }
 
-    /* On PC: limit max height so slides don't get too tall */
-    @media (min-width: 1024px) {
+    /* Tablet & PC landscape: restore 16:9 card look with padding */
+    @media (min-width: 768px) and (orientation: landscape),
+           (min-width: 1024px) {
+      .slides-container {
+        gap: 16px;
+        padding: 16px;
+        align-items: center;
+      }
       .slide {
-        max-height: calc(100dvh - 32px);
+        width: auto;
+        height: calc(100dvh - 32px);
+        aspect-ratio: 16 / 9;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        background: #fff;
+        scroll-snap-align: center;
       }
     }
 
-    /* Landscape phones: shrink slide a bit for nav buttons */
+    /* Landscape phone (narrow height): full width, auto height */
     @media (max-height: 500px) and (orientation: landscape) {
+      .slides-container {
+        gap: 0;
+        padding: 0;
+      }
       .slide {
-        height: calc(100dvh - var(--slide-padding) * 2 - 16px);
+        width: 100vw;
+        height: 100dvh;
+        aspect-ratio: unset;
+        border-radius: 0;
+        box-shadow: none;
+        scroll-snap-align: start;
       }
     }
 
@@ -370,7 +390,8 @@
     function getSlideWidth() {
       const first = container.children[0];
       if (!first) return 0;
-      return first.offsetWidth + parseInt(getComputedStyle(container).gap || '12');
+      const gap = parseFloat(getComputedStyle(container).gap) || 0;
+      return first.offsetWidth + gap;
     }
 
     function updateUI(index) {
