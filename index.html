@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PPT Horizontal Scroll</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #f4f4f4;
+      font-family: Arial, sans-serif;
+    }
+
+    .slides-container {
+      display: flex;
+      flex-direction: row;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-behavior: smooth;
+      height: 100vh;
+      gap: 10px;
+      padding: 10px 5px;
+      -webkit-overflow-scrolling: touch;
+      scroll-snap-type: x mandatory;
+    }
+
+    .slide {
+      height: 94vh;                    /* Tinggi hampir full */
+      width: auto;
+      aspect-ratio: 16 / 9;            /* Penting untuk 16:9 */
+      flex-shrink: 0;
+      border-radius: 10px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+      overflow: hidden;
+      background: white;
+      position: relative;
+      scroll-snap-align: center;
+    }
+
+    .slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: white;
+    }
+
+    /* Slide Number */
+    .slide-number {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 5px 11px;
+      border-radius: 20px;
+      font-size: 13.5px;
+      z-index: 10;
+    }
+
+    /* Hamburger */
+    #hamburger {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      border: none;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      font-size: 28px;
+      z-index: 5000;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.4);
+    }
+
+    /* Nav Button */
+    .nav-button {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      border: none;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      font-size: 26px;
+      z-index: 4000;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.4);
+    }
+
+    #prevBtn { left: 12px; }
+    #nextBtn { right: 12px; }
+
+    /* Sidebar */
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: -280px;
+      width: 280px;
+      height: 100vh;
+      background: white;
+      box-shadow: 4px 0 15px rgba(0,0,0,0.3);
+      transition: left 0.4s;
+      z-index: 6000;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .sidebar.open { left: 0; }
+
+    .search-box {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0 15px 0;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+
+    .slide-list li {
+      padding: 12px 8px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+    }
+
+    .slide-list li:hover,
+    .slide-list li.active {
+      background: #e3f2fd;
+    }
+  </style>
+</head>
+<body>
+
+  <button id="hamburger">☰</button>
+
+  <div class="sidebar" id="sidebar">
+    <h2>Daftar Slide</h2>
+    <input type="text" id="searchInput" class="search-box" placeholder="Cari slide...">
+    <ul class="slide-list" id="slideList"></ul>
+  </div>
+
+  <div class="slides-container" id="slides"></div>
+
+  <button id="prevBtn" class="nav-button">←</button>
+  <button id="nextBtn" class="nav-button">→</button>
+
+  <script>
+    const slideImages = [
+      { name: "slide1.PNG", path: "gambar/slide1.PNG" },
+      { name: "slide2.PNG", path: "gambar/slide2.PNG" },
+	{ name: "slide3.PNG", path: "gambar/slide2.PNG" },
+	{ name: "slide4.PNG", path: "gambar/slide2.PNG" },
+	{ name: "slide5.PNG", path: "gambar/slide2.PNG" },
+	{ name: "slide6.PNG", path: "gambar/slide2.PNG" },
+	{ name: "slide7.PNG", path: "gambar/slide2.PNG" },
+	{ name: "slide8.PNG", path: "gambar/slide2.PNG" },
+	{ name: "slide9.PNG", path: "gambar/slide2.PNG" },
+	{ name: "slide10.PNG", path: "gambar/slide2.PNG" },
+	{ name: "slide11.PNG", path: "gambar/slide2.PNG" },
+      // Tambahkan semua slide kamu di sini
+    ];
+
+    const container = document.getElementById('slides');
+    const slideListEl = document.getElementById('slideList');
+    const searchInput = document.getElementById('searchInput');
+    const sidebar = document.getElementById('sidebar');
+    const hamburger = document.getElementById('hamburger');
+
+    let currentIndex = 0;
+
+    slideImages.forEach((slide, index) => {
+      const div = document.createElement('div');
+      div.className = 'slide';
+      div.innerHTML = `
+        <img src="${slide.path}" alt="${slide.name}">
+        <div class="slide-number">${index + 1} / ${slideImages.length}</div>
+      `;
+      container.appendChild(div);
+    });
+
+    function renderSlideList(filtered) {
+      slideListEl.innerHTML = '';
+      filtered.forEach((slide, i) => {
+        const li = document.createElement('li');
+        li.textContent = `${i+1}. ${slide.name}`;
+        li.onclick = () => {
+          goToSlide(i);
+          sidebar.classList.remove('open');
+        };
+        if (i === currentIndex) li.classList.add('active');
+        slideListEl.appendChild(li);
+      });
+    }
+
+    function goToSlide(index) {
+      currentIndex = index;
+      const slideWidth = container.children[0].offsetWidth + 10;
+      container.scrollTo({ left: index * slideWidth, behavior: 'smooth' });
+    }
+
+    container.addEventListener('scroll', () => {
+      const slideWidth = container.children[0].offsetWidth + 10;
+      currentIndex = Math.round(container.scrollLeft / slideWidth);
+      renderSlideList(slideImages);
+    });
+
+    function scrollToSlide(dir) {
+      const slideWidth = container.children[0].offsetWidth + 10;
+      container.scrollBy({ left: dir * slideWidth, behavior: 'smooth' });
+    }
+
+    document.getElementById('nextBtn').onclick = () => scrollToSlide(1);
+    document.getElementById('prevBtn').onclick = () => scrollToSlide(-1);
+
+    hamburger.onclick = () => sidebar.classList.toggle('open');
+
+    searchInput.oninput = () => {
+      const term = searchInput.value.toLowerCase();
+      const filtered = slideImages.filter(s => s.name.toLowerCase().includes(term));
+      renderSlideList(filtered);
+    };
+
+    document.addEventListener('keydown', e => {
+      if (e.key === "ArrowRight") scrollToSlide(1);
+      if (e.key === "ArrowLeft") scrollToSlide(-1);
+    });
+
+    renderSlideList(slideImages);
+  </script>
+</body>
+</html>
