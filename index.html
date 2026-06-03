@@ -3,183 +3,489 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>PPT Horizontal Scroll</title>
+  <title>PPT Viewer</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    body {
-      overflow: hidden;
-      background: #f4f4f4;
-      font-family: Arial, sans-serif;
-      height: 100vh;
+    :root {
+      --nav-btn-size: 48px;
+      --hamburger-size: 48px;
+      --slide-gap: 12px;
+      --slide-padding: 12px;
     }
 
+    @media (min-width: 768px) {
+      :root {
+        --nav-btn-size: 52px;
+        --hamburger-size: 52px;
+        --slide-gap: 16px;
+        --slide-padding: 16px;
+      }
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: #1a1a2e;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      touch-action: pan-x;
+    }
+
+    /* ── SLIDES CONTAINER ── */
     .slides-container {
       display: flex;
       flex-direction: row;
-      overflow-x: auto;
+      overflow-x: scroll;
       overflow-y: hidden;
       scroll-behavior: smooth;
-      height: 100vh;
-      gap: 10px;
-      padding: 10px 5px;
+      height: 100dvh;
+      gap: var(--slide-gap);
+      padding: var(--slide-padding);
       -webkit-overflow-scrolling: touch;
       scroll-snap-type: x mandatory;
+      scrollbar-width: none;
     }
+    .slides-container::-webkit-scrollbar { display: none; }
 
+    /* ── SLIDE ── */
     .slide {
-      height: 94vh;
+      height: calc(100dvh - var(--slide-padding) * 2);
       width: auto;
       aspect-ratio: 16 / 9;
       flex-shrink: 0;
-      border-radius: 10px;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
       overflow: hidden;
-      background: white;
+      background: #fff;
       position: relative;
       scroll-snap-align: center;
+      transition: transform 0.2s ease;
+    }
+
+    /* On PC: limit max height so slides don't get too tall */
+    @media (min-width: 1024px) {
+      .slide {
+        max-height: calc(100dvh - 32px);
+      }
+    }
+
+    /* Landscape phones: shrink slide a bit for nav buttons */
+    @media (max-height: 500px) and (orientation: landscape) {
+      .slide {
+        height: calc(100dvh - var(--slide-padding) * 2 - 16px);
+      }
     }
 
     .slide img {
       width: 100%;
       height: 100%;
       object-fit: contain;
-      background: white;
+      background: #fff;
+      display: block;
+    }
+
+    .slide-error {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: #c0392b;
+      font-size: 14px;
+      padding: 20px;
+      text-align: center;
     }
 
     .slide-number {
       position: absolute;
-      bottom: 12px;
-      right: 12px;
-      background: rgba(0,0,0,0.8);
-      color: white;
-      padding: 5px 11px;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.75);
+      color: #fff;
+      padding: 4px 10px;
       border-radius: 20px;
-      font-size: 13.5px;
-      z-index: 10;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+      pointer-events: none;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
     }
 
-    #hamburger, .nav-button {
+    @media (min-width: 768px) {
+      .slide-number { font-size: 13px; padding: 5px 12px; }
+    }
+
+    /* ── HAMBURGER ── */
+    #hamburger {
       position: fixed;
-      background: rgba(0, 0, 0, 0.9);
-      color: white;
+      top: 14px;
+      left: 14px;
+      width: var(--hamburger-size);
+      height: var(--hamburger-size);
+      background: rgba(0,0,0,0.82);
+      color: #fff;
       border: none;
-      width: 52px;
-      height: 52px;
       border-radius: 50%;
-      font-size: 28px;
+      font-size: 22px;
       z-index: 5000;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: background 0.2s;
+    }
+    #hamburger:active { background: rgba(0,0,0,0.95); }
+
+    /* ── NAV BUTTONS ── */
+    .nav-button {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      width: var(--nav-btn-size);
+      height: var(--nav-btn-size);
+      background: rgba(0,0,0,0.72);
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      font-size: 22px;
+      z-index: 5000;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: background 0.2s, opacity 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nav-button:active { background: rgba(0,0,0,0.95); }
+    .nav-button.hidden { opacity: 0; pointer-events: none; }
+
+    #prevBtn { left: 14px; }
+    #nextBtn { right: 14px; }
+
+    /* On small phones in portrait, hide nav buttons (use swipe) */
+    @media (max-width: 480px) and (orientation: portrait) {
+      #prevBtn, #nextBtn { display: none; }
     }
 
-    #hamburger { top: 15px; left: 15px; }
-    #prevBtn { top: 50%; left: 15px; transform: translateY(-50%); }
-    #nextBtn { top: 50%; right: 15px; transform: translateY(-50%); }
+    /* ── SIDEBAR ── */
+    .sidebar-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 5999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .sidebar-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
 
     .sidebar {
       position: fixed;
-      top: 0; left: -280px;
-      width: 280px; height: 100vh;
-      background: white;
-      box-shadow: 4px 0 15px rgba(0,0,0,0.3);
-      transition: left 0.4s ease;
+      top: 0;
+      left: -300px;
+      width: 280px;
+      height: 100dvh;
+      background: #fff;
+      box-shadow: 6px 0 24px rgba(0,0,0,0.3);
+      transition: left 0.35s cubic-bezier(.4,0,.2,1);
       z-index: 6000;
-      padding: 20px;
-      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
     }
     .sidebar.open { left: 0; }
+
+    @media (min-width: 768px) {
+      .sidebar { width: 300px; }
+    }
+
+    .sidebar-header {
+      padding: 20px 18px 12px;
+      border-bottom: 1px solid #eee;
+      flex-shrink: 0;
+    }
+
+    .sidebar-header h2 {
+      font-size: 17px;
+      font-weight: 600;
+      color: #111;
+      margin-bottom: 12px;
+    }
+
+    .sidebar-header input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      color: #222;
+      background: #f8f8f8;
+      transition: border 0.2s, background 0.2s;
+    }
+    .sidebar-header input:focus {
+      border-color: #4a90e2;
+      background: #fff;
+    }
+
+    #slideList {
+      list-style: none;
+      padding: 8px 0;
+      overflow-y: auto;
+      flex: 1;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #slideList li {
+      padding: 12px 18px;
+      font-size: 14px;
+      color: #333;
+      border-bottom: 1px solid #f0f0f0;
+      cursor: pointer;
+      transition: background 0.15s;
+      -webkit-tap-highlight-color: rgba(74,144,226,0.1);
+    }
+    #slideList li:hover { background: #f5f8ff; }
+    #slideList li:active { background: #e8f0fe; }
+    #slideList li.active { background: #e8f0fe; color: #1a56db; font-weight: 500; }
+    #slideList li:last-child { border-bottom: none; }
+
+    /* ── PROGRESS BAR ── */
+    #progressBar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      background: #4a90e2;
+      z-index: 4999;
+      transition: width 0.2s ease;
+      border-radius: 0 3px 3px 0;
+    }
+
+    /* ── SLIDE COUNT TOOLTIP ── */
+    #slideCounter {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.65);
+      color: #fff;
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      z-index: 4998;
+      pointer-events: none;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      letter-spacing: 0.3px;
+    }
   </style>
 </head>
 <body>
 
-  <button id="hamburger">☰</button>
+  <button id="hamburger" aria-label="Buka menu">☰</button>
 
-  <div class="sidebar" id="sidebar">
-    <h2>Daftar Slide</h2>
-    <input type="text" id="searchInput" placeholder="Cari slide..." style="width:100%; padding:12px; margin:15px 0; border:1px solid #ddd; border-radius:8px;">
-    <ul id="slideList" style="list-style:none; padding:0;"></ul>
+  <div class="sidebar-overlay" id="overlay"></div>
+
+  <div class="sidebar" id="sidebar" role="navigation" aria-label="Daftar slide">
+    <div class="sidebar-header">
+      <h2>Daftar Slide</h2>
+      <input type="search" id="searchInput" placeholder="Cari slide..." autocomplete="off" aria-label="Cari slide">
+    </div>
+    <ul id="slideList" role="listbox" aria-label="Pilih slide"></ul>
   </div>
 
-  <div class="slides-container" id="slides"></div>
+  <div class="slides-container" id="slides" role="main" aria-label="Area slide"></div>
 
-  <button id="prevBtn" class="nav-button">←</button>
-  <button id="nextBtn" class="nav-button">→</button>
+  <button id="prevBtn" class="nav-button hidden" aria-label="Slide sebelumnya">&#8592;</button>
+  <button id="nextBtn" class="nav-button" aria-label="Slide berikutnya">&#8594;</button>
+
+  <div id="progressBar"></div>
+  <div id="slideCounter" aria-live="polite">1 / 1</div>
 
   <script>
     const basePath = "gambar/";
 
     const slideImages = [
-      { name: "Slide1.PNG", path: basePath + "Slide1.PNG" },
-      { name: "Slide2.PNG", path: basePath + "Slide2.PNG" },
-      { name: "Slide3.PNG", path: basePath + "Slide3.PNG" },
-      { name: "Slide4.PNG", path: basePath + "Slide4.PNG" },
-      { name: "Slide5.PNG", path: basePath + "Slide5.PNG" },
-      { name: "Slide6.PNG", path: basePath + "Slide6.PNG" },
-      { name: "Slide7.PNG", path: basePath + "Slide7.PNG" },
-      { name: "Slide8.PNG", path: basePath + "Slide8.PNG" },
-      { name: "Slide9.PNG", path: basePath + "Slide9.PNG" },
+      { name: "Slide1.PNG",  path: basePath + "Slide1.PNG" },
+      { name: "Slide2.PNG",  path: basePath + "Slide2.PNG" },
+      { name: "Slide3.PNG",  path: basePath + "Slide3.PNG" },
+      { name: "Slide4.PNG",  path: basePath + "Slide4.PNG" },
+      { name: "Slide5.PNG",  path: basePath + "Slide5.PNG" },
+      { name: "Slide6.PNG",  path: basePath + "Slide6.PNG" },
+      { name: "Slide7.PNG",  path: basePath + "Slide7.PNG" },
+      { name: "Slide8.PNG",  path: basePath + "Slide8.PNG" },
+      { name: "Slide9.PNG",  path: basePath + "Slide9.PNG" },
       { name: "Slide10.PNG", path: basePath + "Slide10.PNG" },
       { name: "Slide11.PNG", path: basePath + "Slide11.PNG" },
-      // Tambahkan sisanya jika ada
+      // Tambahkan sisanya di sini
     ];
 
-    const container = document.getElementById('slides');
+    const container  = document.getElementById('slides');
+    const sidebar    = document.getElementById('sidebar');
+    const overlay    = document.getElementById('overlay');
+    const searchInput = document.getElementById('searchInput');
+    const slideList  = document.getElementById('slideList');
+    const prevBtn    = document.getElementById('prevBtn');
+    const nextBtn    = document.getElementById('nextBtn');
+    const progressBar = document.getElementById('progressBar');
+    const slideCounter = document.getElementById('slideCounter');
+    const total      = slideImages.length;
     let currentIndex = 0;
+    let scrolling    = false;
 
+    // ── BUILD SLIDES ──
     slideImages.forEach((slide, index) => {
       const div = document.createElement('div');
       div.className = 'slide';
-      div.innerHTML = `
-        <img src="${slide.path}" alt="${slide.name}" 
-             onerror="this.parentElement.innerHTML='<div style=\'color:red;padding:20px;text-align:center\'>Gagal memuat: ${slide.name}</div>'">
-        <div class="slide-number">${index + 1} / ${slideImages.length}</div>
-      `;
+      div.dataset.index = index;
+
+      const img = document.createElement('img');
+      img.src = slide.path;
+      img.alt = slide.name;
+      img.loading = index < 3 ? 'eager' : 'lazy';
+      img.onerror = () => {
+        div.innerHTML = `<div class="slide-error">Gagal memuat:<br>${slide.name}</div>`;
+      };
+
+      const num = document.createElement('div');
+      num.className = 'slide-number';
+      num.textContent = `${index + 1} / ${total}`;
+
+      div.appendChild(img);
+      div.appendChild(num);
       container.appendChild(div);
     });
 
-    function goToSlide(index) {
-      currentIndex = index;
-      const slideWidth = container.children[0].offsetWidth + 10;
-      container.scrollTo({ left: index * slideWidth, behavior: 'smooth' });
+    // ── HELPERS ──
+    function getSlideWidth() {
+      const first = container.children[0];
+      if (!first) return 0;
+      return first.offsetWidth + parseInt(getComputedStyle(container).gap || '12');
     }
 
+    function updateUI(index) {
+      currentIndex = Math.max(0, Math.min(index, total - 1));
+
+      // progress bar
+      progressBar.style.width = ((currentIndex + 1) / total * 100) + '%';
+
+      // counter
+      slideCounter.textContent = `${currentIndex + 1} / ${total}`;
+
+      // nav buttons
+      prevBtn.classList.toggle('hidden', currentIndex === 0);
+      nextBtn.classList.toggle('hidden', currentIndex === total - 1);
+
+      // sidebar active
+      document.querySelectorAll('#slideList li').forEach((li, i) => {
+        li.classList.toggle('active', i === currentIndex);
+      });
+    }
+
+    function goToSlide(index, behavior = 'smooth') {
+      const sw = getSlideWidth();
+      if (!sw) return;
+      container.scrollTo({ left: index * sw, behavior });
+      updateUI(index);
+    }
+
+    // ── SCROLL LISTENER (debounced) ──
+    let scrollTimer;
     container.addEventListener('scroll', () => {
-      const slideWidth = container.children[0].offsetWidth + 10;
-      currentIndex = Math.round(container.scrollLeft / slideWidth);
-    });
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        const sw = getSlideWidth();
+        if (!sw) return;
+        const idx = Math.round(container.scrollLeft / sw);
+        updateUI(idx);
+      }, 80);
+    }, { passive: true });
 
-    function scrollToSlide(dir) {
-      const slideWidth = container.children[0].offsetWidth + 10;
-      container.scrollBy({ left: dir * slideWidth, behavior: 'smooth' });
+    // ── NAV BUTTONS ──
+    prevBtn.addEventListener('click', () => goToSlide(currentIndex - 1));
+    nextBtn.addEventListener('click', () => goToSlide(currentIndex + 1));
+
+    // ── HAMBURGER / OVERLAY ──
+    function openSidebar() {
+      sidebar.classList.add('open');
+      overlay.classList.add('open');
+      buildList('');
+      searchInput.value = '';
+      searchInput.focus();
+    }
+    function closeSidebar() {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('open');
     }
 
-    document.getElementById('nextBtn').onclick = () => scrollToSlide(1);
-    document.getElementById('prevBtn').onclick = () => scrollToSlide(-1);
-    document.getElementById('hamburger').onclick = () => document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('hamburger').addEventListener('click', () => {
+      sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+    });
+    overlay.addEventListener('click', closeSidebar);
 
-    document.getElementById('searchInput').addEventListener('input', (e) => {
-      const term = e.target.value.toLowerCase();
-      const list = document.getElementById('slideList');
-      list.innerHTML = '';
+    // ── SLIDE LIST ──
+    function buildList(term) {
+      slideList.innerHTML = '';
       slideImages
-        .filter(s => s.name.toLowerCase().includes(term))
+        .filter(s => s.name.toLowerCase().includes(term.toLowerCase()))
         .forEach((slide, i) => {
+          const realIndex = slideImages.indexOf(slide);
           const li = document.createElement('li');
-          li.textContent = `${i+1}. ${slide.name}`;
-          li.style.padding = "12px 8px";
-          li.style.borderBottom = "1px solid #eee";
-          li.onclick = () => {
-            goToSlide(i);
-            document.getElementById('sidebar').classList.remove('open');
-          };
-          list.appendChild(li);
+          li.textContent = `Slide ${realIndex + 1}`;
+          li.setAttribute('role', 'option');
+          li.dataset.index = realIndex;
+          if (realIndex === currentIndex) li.classList.add('active');
+          li.addEventListener('click', () => {
+            goToSlide(realIndex);
+            closeSidebar();
+          });
+          slideList.appendChild(li);
         });
+    }
+
+    searchInput.addEventListener('input', e => buildList(e.target.value));
+
+    // ── KEYBOARD ──
+    document.addEventListener('keydown', e => {
+      if (sidebar.classList.contains('open')) {
+        if (e.key === 'Escape') closeSidebar();
+        return;
+      }
+      if (e.key === 'ArrowRight' || e.key === 'PageDown') goToSlide(currentIndex + 1);
+      if (e.key === 'ArrowLeft'  || e.key === 'PageUp')   goToSlide(currentIndex - 1);
+      if (e.key === 'Home') goToSlide(0);
+      if (e.key === 'End')  goToSlide(total - 1);
     });
 
-    document.addEventListener('keydown', e => {
-      if (e.key === "ArrowRight") scrollToSlide(1);
-      if (e.key === "ArrowLeft") scrollToSlide(-1);
+    // ── SWIPE (Touch) ──
+    let touchStartX = 0, touchStartY = 0;
+    container.addEventListener('touchstart', e => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    // ── RESIZE: recalculate position ──
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        goToSlide(currentIndex, 'instant');
+      }, 150);
+    });
+
+    // ── INIT ──
+    window.addEventListener('load', () => {
+      goToSlide(0, 'instant');
     });
   </script>
 </body>
