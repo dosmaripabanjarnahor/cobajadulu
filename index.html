@@ -5,14 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>PPT Horizontal Scroll</title>
   <style>
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      margin: 0;
-      padding: 0;
       overflow: hidden;
       background: #f4f4f4;
       font-family: Arial, sans-serif;
+      height: 100vh;
     }
 
     .slides-container {
@@ -65,17 +64,18 @@
       background: rgba(0, 0, 0, 0.9);
       color: white;
       border: none;
-      width: 50px;
-      height: 50px;
+      width: 52px;
+      height: 52px;
       border-radius: 50%;
       font-size: 28px;
       z-index: 5000;
-      box-shadow: 0 3px 12px rgba(0,0,0,0.4);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+      cursor: pointer;
     }
 
-    #hamburger { top: 12px; left: 12px; font-size: 26px; }
-    #prevBtn { top: 50%; left: 12px; transform: translateY(-50%); }
-    #nextBtn { top: 50%; right: 12px; transform: translateY(-50%); }
+    #hamburger { top: 15px; left: 15px; }
+    #prevBtn { top: 50%; left: 15px; transform: translateY(-50%); }
+    #nextBtn { top: 50%; right: 15px; transform: translateY(-50%); }
 
     .sidebar {
       position: fixed;
@@ -83,7 +83,7 @@
       width: 280px; height: 100vh;
       background: white;
       box-shadow: 4px 0 15px rgba(0,0,0,0.3);
-      transition: left 0.4s;
+      transition: left 0.4s ease;
       z-index: 6000;
       padding: 20px;
       overflow-y: auto;
@@ -97,7 +97,7 @@
 
   <div class="sidebar" id="sidebar">
     <h2>Daftar Slide</h2>
-    <input type="text" id="searchInput" placeholder="Cari slide..." style="width:100%; padding:12px; margin:10px 0;">
+    <input type="text" id="searchInput" placeholder="Cari slide..." style="width:100%; padding:12px; margin:15px 0; border:1px solid #ddd; border-radius:8px;">
     <ul id="slideList" style="list-style:none; padding:0;"></ul>
   </div>
 
@@ -107,23 +107,21 @@
   <button id="nextBtn" class="nav-button">→</button>
 
   <script>
-    // === UBAH PATH INI JIKA PERLU ===
-    const basePath = "gambar/";   // Pastikan folder ini benar
+    const basePath = "gambar/";
 
     const slideImages = [
-      { name: "slide1.PNG", path: basePath + "slide1.PNG" },
-      { name: "slide2.PNG", path: basePath + "slide2.PNG" },
-	  { name: "slide3.PNG", path: "gambar/slide3.PNG" },
-	  { name: "slide4.PNG", path: "gambar/slide4.PNG" },
-	  { name: "slide5.PNG", path: "gambar/slide5.PNG" },
-	  { name: "slide6.PNG", path: "gambar/slide6.PNG" },
-	  { name: "slide7.PNG", path: "gambar/slide7.PNG" },
-	  { name: "slide8.PNG", path: "gambar/slide8.PNG" },
-	  { name: "slide9.PNG", path: "gambar/slide9.PNG" },
-	  { name: "slide10.PNG", path: "gambar/slid10.PNG" },
-	  { name: "slide11.PNG", path: "gambar/slide11.PNG" }
-
-      // Tambahkan slide lain di sini
+      { name: "Slide1.PNG", path: basePath + "Slide1.PNG" },
+      { name: "Slide2.PNG", path: basePath + "Slide2.PNG" },
+      { name: "Slide3.PNG", path: basePath + "Slide3.PNG" },
+      { name: "Slide4.PNG", path: basePath + "Slide4.PNG" },
+      { name: "Slide5.PNG", path: basePath + "Slide5.PNG" },
+      { name: "Slide6.PNG", path: basePath + "Slide6.PNG" },
+      { name: "Slide7.PNG", path: basePath + "Slide7.PNG" },
+      { name: "Slide8.PNG", path: basePath + "Slide8.PNG" },
+      { name: "Slide9.PNG", path: basePath + "Slide9.PNG" },
+      { name: "Slide10.PNG", path: basePath + "Slide10.PNG" },
+      { name: "Slide11.PNG", path: basePath + "Slide11.PNG" },
+      // Tambahkan sisanya jika ada
     ];
 
     const container = document.getElementById('slides');
@@ -133,13 +131,13 @@
       const div = document.createElement('div');
       div.className = 'slide';
       div.innerHTML = `
-        <img src="${slide.path}" alt="${slide.name}" onerror="this.style.display='none'; console.error('Gagal load: ${slide.path}')">
+        <img src="${slide.path}" alt="${slide.name}" 
+             onerror="this.parentElement.innerHTML='<div style=\'color:red;padding:20px;text-align:center\'>Gagal memuat: ${slide.name}</div>'">
         <div class="slide-number">${index + 1} / ${slideImages.length}</div>
       `;
       container.appendChild(div);
     });
 
-    // Fungsi lain tetap sama seperti sebelumnya...
     function goToSlide(index) {
       currentIndex = index;
       const slideWidth = container.children[0].offsetWidth + 10;
@@ -160,7 +158,25 @@
     document.getElementById('prevBtn').onclick = () => scrollToSlide(-1);
     document.getElementById('hamburger').onclick = () => document.getElementById('sidebar').classList.toggle('open');
 
-    // Keyboard
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      const term = e.target.value.toLowerCase();
+      const list = document.getElementById('slideList');
+      list.innerHTML = '';
+      slideImages
+        .filter(s => s.name.toLowerCase().includes(term))
+        .forEach((slide, i) => {
+          const li = document.createElement('li');
+          li.textContent = `${i+1}. ${slide.name}`;
+          li.style.padding = "12px 8px";
+          li.style.borderBottom = "1px solid #eee";
+          li.onclick = () => {
+            goToSlide(i);
+            document.getElementById('sidebar').classList.remove('open');
+          };
+          list.appendChild(li);
+        });
+    });
+
     document.addEventListener('keydown', e => {
       if (e.key === "ArrowRight") scrollToSlide(1);
       if (e.key === "ArrowLeft") scrollToSlide(-1);
