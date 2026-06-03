@@ -28,6 +28,8 @@
       overflow: hidden;
       background: #1a1a2e;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      /* Izinkan pinch zoom di WebView Android */
+      touch-action: pan-x pan-y pinch-zoom;
     }
 
     /* ── SLIDES CONTAINER ── */
@@ -44,6 +46,7 @@
       scroll-snap-type: x mandatory;
       scrollbar-width: none;
       align-items: center;
+      touch-action: pan-x pinch-zoom;
     }
     .slides-container::-webkit-scrollbar { display: none; }
 
@@ -54,10 +57,11 @@
       flex-shrink: 0;
       border-radius: 0;
       box-shadow: none;
-      overflow: hidden;
+      overflow: visible;
       background: #000;
       position: relative;
       scroll-snap-align: start;
+      touch-action: pan-x pinch-zoom;
     }
 
     /* Tablet & PC landscape: restore 16:9 card look with padding */
@@ -493,6 +497,41 @@
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
     }, { passive: true });
+
+    // ── PINCH ZOOM — nonaktifkan scroll-snap saat zoom ──
+    let isZooming = false;
+    let zoomResetTimer;
+
+    container.addEventListener('touchstart', e => {
+      if (e.touches.length >= 2) {
+        isZooming = true;
+        // Nonaktifkan scroll-snap agar tidak konflik dengan pinch
+        container.style.scrollSnapType = 'none';
+        container.style.overflowX = 'hidden';
+      }
+    }, { passive: true });
+
+    container.addEventListener('touchend', e => {
+      if (isZooming && e.touches.length < 2) {
+        clearTimeout(zoomResetTimer);
+        zoomResetTimer = setTimeout(() => {
+          isZooming = false;
+          // Aktifkan kembali scroll setelah zoom selesai
+          container.style.overflowX = 'scroll';
+          container.style.scrollSnapType = 'x mandatory';
+        }, 300);
+      }
+    }, { passive: true });
+
+    // Paksa WebView Android izinkan zoom via meta tag dinamis
+    (function enableZoom() {
+      const meta = document.querySelector('meta[name=viewport]');
+      if (meta) {
+        meta.setAttribute('content',
+          'width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes'
+        );
+      }
+    })();
 
     // ── RESIZE: recalculate position ──
     let resizeTimer;
